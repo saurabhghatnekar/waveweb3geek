@@ -8,7 +8,7 @@ export default function App() {
   const [currentAccount, setCurrentAccount] = useState("");
   const [miningStatus, updateMiningStatus] = useState(false);
   const [waveCount, updateWaveCount] = useState(0)
-
+  const [message, updateMessage] = useState("")
   //const contractAddress = "0x2F2a131Fe26902BD673b300Ca7502e50152b1Bac"
   const contractABI = abi.abi
 
@@ -67,28 +67,31 @@ export default function App() {
         const signer = provider.getSigner();
         const wavePortalContract = new ethers.Contract(contractAddress, contractABI, signer);
 
-        let count = await wavePortalContract.getTotalWaves();
-        console.log("Retrieved total wave count...", count.toNumber());
+        getAllWaves();
+        
 
         /*
         * Execute the actual wave from your smart contract
         */
         updateMiningStatus(true);
-        const waveTxn = await wavePortalContract.wave();
+        const waveTxn = await wavePortalContract.wave(message,  { gasLimit: 300000 });
         console.log("Mining...", waveTxn.hash);
 
         await waveTxn.wait();
         console.log("Mined -- ", waveTxn.hash);
         updateMiningStatus(false);
-
-        count = await wavePortalContract.getTotalWaves();
-        updateWaveCount(count.toNumber())
-        console.log("Retrieved total wave count...", count.toNumber());
+        updateMessage("")
+        getAllWaves();
+        //updateWaveCount(count.toNumber())
+        //console.log("Retrieved total wave count...", count.toNumber());
       } else {
         console.log("Ethereum object doesn't exist!");
+        updateMiningStatus(false);
       }
     } catch (error) {
-      console.log(error)
+      console.log(error.status)
+      updateMiningStatus(false);
+      
     }
   }
   
@@ -96,7 +99,7 @@ export default function App() {
    * All state property to store all waves
    */
   const [allWaves, setAllWaves] = useState([]);
-  const contractAddress = "0x2F2a131Fe26902BD673b300Ca7502e50152b1Bac"
+  const contractAddress = "0x56787A81A2dDE450BFCbD27E53dCdb130F1ecf4f"
 
   /*
    * Create a method that gets all waves from your contract
@@ -139,7 +142,7 @@ export default function App() {
       console.log(error);
     }
   }
-  useEffect(()=> {checkIfWalletIsConnected();},[])
+  useEffect(()=> {checkIfWalletIsConnected(); getAllWaves();},[])
 
 
   return (
@@ -154,10 +157,20 @@ export default function App() {
           I am <a href="https://twitter.com/web3geek">web3geek</a> and I worked on self-driving trucks, text extraction and digital analytics so that's pretty cool right? 
           Connect your Ethereum wallet and wave at me!
         </div>
+        
+        <form>
+          <label>
+            Your Message:
+            <input type="text" value={message} name="name" onChange={(event) => {
+                updateMessage(event.target.value)
+            }}/>
+          </label>
+        </form>
 
         <button className="waveButton" onClick={wave}>
           Wave at Me
         </button>
+        
         {!currentAccount && (
           <button className="waveButton" onClick={connectWallet}>
             Connect Wallet
